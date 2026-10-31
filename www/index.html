@@ -1,234 +1,75 @@
-<!DOCTYPE html>
-<html lang="uz">
-<head>
-<meta charset="utf-8">
+<!DOCTYPE html><html lang="uz"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Uy ijara</title>
 <style>
-:root{--b:#2563eb;--bg:#f3f5fa;--t:#1b2433;--m:#667085;--bad:#dc2626;--ok:#16a34a}
-*{box-sizing:border-box}
-body{margin:0;font-family:Roboto,system-ui,sans-serif;background:var(--bg);color:var(--t)}
-header{background:var(--b);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 12px) 10px 10px;position:sticky;top:0;z-index:5}
-h1{font-size:19px;margin:0 0 8px 4px}
-.row{display:flex;gap:6px;margin-bottom:6px}
-.row>*{flex:1;min-width:0}
-select,input[type=text],input[type=number]{width:100%;padding:8px;border:0;border-radius:8px;font-size:14px;background:#fff;color:var(--t)}
-label.ck{flex:none;display:flex;align-items:center;gap:4px;font-size:13px}
-#bar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:13px;color:var(--m)}
-button{font:inherit;cursor:pointer}
-.btn{background:var(--b);color:#fff;border:0;border-radius:10px;padding:10px 18px;font-size:14px}
-.btn.l{background:#e7edfb;color:var(--b);padding:8px 12px;font-size:13px}
-#list{padding:0 10px 24px}
-.card{background:#fff;border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
-.ttl{font-weight:600;font-size:15px}
-.price{font-weight:700;color:var(--b);font-size:16px;text-align:right;white-space:nowrap}
-.price small{display:block;font-weight:400;color:var(--m);font-size:11px}
-.loc{color:var(--m);font-size:13px;margin:4px 0}
-.tags{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
-.tag{background:#eef2f7;border-radius:6px;padding:2px 7px;font-size:12px}
-.tag.g{background:#e3f6ea;color:var(--ok)}.tag.r{background:#fde8e8;color:var(--bad)}
-.txt{font-size:13px;line-height:1.35;white-space:pre-wrap;color:#344054}
-.acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-.acts a,.acts button{flex:1;text-align:center;text-decoration:none;border:0;border-radius:9px;padding:9px 6px;font-size:13px}
-.call{background:var(--ok);color:#fff}.tg{background:#e7edfb;color:var(--b)}.busy{background:#f2f4f7;color:var(--m)}
-.msg{text-align:center;padding:30px 16px;color:var(--m)}
-.err{background:#fde8e8;color:#7a1c1c;border-radius:12px;margin:12px;padding:14px;font-size:14px;line-height:1.4}
-.err small{display:block;margin-top:6px;opacity:.75;word-break:break-word}
-</style>
-</head>
-<body>
-<header>
-  <h1>🏠 Uy ijara</h1>
-  <div class="row">
-    <select id="city"><option value="">Shahar</option><option>Namangan</option><option>Toshkent</option></select>
-    <select id="type"><option value="">Turi</option><option value="kvartira">Kvartira</option><option value="hovli">Hovli</option><option value="joy">Joy / yotoqxona</option></select>
-    <select id="rooms"><option value="">Xona</option><option value="1">1 xonali</option><option value="2">2 xonali</option><option value="3">3 xonali</option><option value="4">4+ xonali</option></select>
-  </div>
-  <div class="row">
-    <input type="number" id="max" placeholder="≤ mln so'm" inputmode="decimal">
-    <input type="text" id="q" placeholder="Manzil / mo'ljal (masalan: Chorsu)">
-  </div>
-  <div class="row">
-    <select id="who"><option value="">Kimga (hammasi)</option><option value="qiz">Qizlarga</option><option value="ogil">O'g'il bolalarga</option><option value="oila">Oilaga</option></select>
-    <select id="sort"><option value="new">Yangilari</option><option value="cheap">Arzonlari</option><option value="exp">Qimmatlari</option></select>
-  </div>
-  <div class="row">
-    <label class="ck"><input type="checkbox" id="student"> Talabaga</label>
-    <label class="ck"><input type="checkbox" id="furn"> Jihozli</label>
-    <label class="ck"><input type="checkbox" id="nobroker"> Maklersiz</label>
-  </div>
-</header>
-<div id="bar"><span id="count"></span><button class="btn l" id="reload">Yangilash</button></div>
-<div id="list"><div class="msg">Yuklanmoqda...</div></div>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>
-// ====== SHU YERNI TO'LDIRING: Firebase -> Project settings -> General -> Your apps -> firebaseConfig ======
-const CFG = {
-  apiKey: "BU_YERGA_apiKey_QO'YING",
-  authDomain: "uyijaraga.firebaseapp.com",
-  projectId: "uyijaraga",
-  storageBucket: "uyijaraga.firebasestorage.app",
-  messagingSenderId: "",
-  appId: ""
-};
-// ==========================================================================================================
-
-const LS = 'uy_cache_v1', TTL = 10 * 60 * 1000, PAGE = 40, BUSY_HIDE = 3;
-let ALL = [], shown = PAGE;
-const $ = id => document.getElementById(id);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-// ==LOGIC==
-function fmtPrice(h) {
-  if (h.price_amount == null) return {main: 'Narxi kelishiladi', sub: ''};
-  const n = Math.round(h.price_amount);
-  let main;
-  if (h.currency === 'USD') main = n + '$';
-  else if (n >= 1000000) main = (Math.round(n / 100000) / 10) + " mln so'm";
-  else main = Math.round(n / 1000) + " ming so'm";
-  const sub = [h.price_type === 'kishi' ? 'kishi boshiga' : h.price_type === 'xona' ? 'xona uchun' : '',
-               h.utilities_extra ? '+ komunal' : ''].filter(Boolean).join(' · ');
-  return {main, sub};
-}
-function ago(ms, now) {
-  if (!ms) return '';
-  const m = Math.max(0, Math.round((now - ms) / 60000));
-  if (m < 60) return (m || 1) + ' daqiqa oldin';
-  if (m < 1440) return Math.round(m / 60) + ' soat oldin';
-  return Math.round(m / 1440) + ' kun oldin';
-}
-function applyFilters(items, f) {
-  const q = (f.q || '').trim().toLowerCase();
-  const max = f.maxMln ? Number(f.maxMln) * 1e6 : 0;
-  const r = items.filter(h => {
-    if ((h.busy || 0) >= BUSY_HIDE) return false;
-    if (f.city && h.city !== f.city) return false;
-    if (f.type && h.type !== f.type) return false;
-    if (f.rooms) {
-      const n = +f.rooms;
-      if (h.rooms == null) return false;
-      if (n >= 4 ? h.rooms < 4 : h.rooms !== n) return false;
-    }
-    const w = h.for_whom || [];
-    if (f.who && w.length && !w.includes(f.who)) return false;
-    if (f.student && h.student === 'yoq') return false;
-    if (f.furn && h.furnished !== 'jihozli') return false;
-    if (f.nobroker && h.broker === 'makler') return false;
-    if (max && h.price_uzs != null && h.price_uzs > max) return false;
-    if (q) {
-      const hay = [h.address, (h.places || []).join(' '), h.city, h.text].join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
-  const p = h => h.price_uzs == null ? null : h.price_uzs;
-  r.sort((a, b) => {
-    if (f.sort === 'cheap' || f.sort === 'exp') {
-      const pa = p(a), pb = p(b);
-      if (pa == null && pb == null) return b.t - a.t;
-      if (pa == null) return 1;
-      if (pb == null) return -1;
-      return f.sort === 'cheap' ? pa - pb : pb - pa;
-    }
-    return b.t - a.t;
-  });
-  return r;
-}
-// ==END==
-
-function filters() {
-  return {city: $('city').value, type: $('type').value, rooms: $('rooms').value, who: $('who').value,
-          maxMln: $('max').value, q: $('q').value, sort: $('sort').value,
-          student: $('student').checked, furn: $('furn').checked, nobroker: $('nobroker').checked};
-}
-function card(h, now) {
-  const pr = fmtPrice(h);
-  const kind = {kvartira: 'Kvartira', hovli: 'Hovli', joy: 'Joy / yotoqxona'}[h.type] || 'Uy';
-  const title = kind + (h.rooms ? ', ' + h.rooms + ' xonali' : '') + (h.floor ? ', ' + h.floor + '-qavat' : '');
-  const loc = [h.city, h.address || (h.places || []).join(', ')].filter(Boolean).join(' · ');
-  const tags = [];
-  if (h.furnished === 'jihozli') tags.push('<span class="tag g">Jihozli</span>');
-  if (h.furnished === 'jihozsiz') tags.push('<span class="tag">Jihozsiz</span>');
-  if (h.broker === 'maklersiz') tags.push('<span class="tag g">Maklersiz</span>');
-  if (h.broker === 'makler') tags.push('<span class="tag r">Makler xizmati bor</span>');
-  if (h.student === 'yoq') tags.push('<span class="tag r">Talabaga berilmaydi</span>');
-  (h.for_whom || []).forEach(w => tags.push('<span class="tag">' + ({qiz: 'Qizlarga', ogil: "O'g'il bolalarga", oila: 'Oilaga'}[w] || '') + '</span>'));
-  const phones = (h.phones || []).slice(0, 2).map(p => '<a class="call" href="tel:' + esc(p) + '">📞 ' + esc(p.replace('+998', '')) + '</a>').join('');
-  const link = /^https:\/\/t\.me\//.test(h.link || '') ? '<a class="tg" href="' + esc(h.link) + '" target="_blank" rel="noopener">Kanalda ochish</a>' : '';
-  const done = (JSON.parse(localStorage.getItem('uy_busy') || '[]')).includes(h.id);
-  return '<div class="card"><div class="top"><div><div class="ttl">' + esc(title) + '</div><div class="loc">' + esc(loc) +
-    '</div></div><div class="price">' + esc(pr.main) + (pr.sub ? '<small>' + esc(pr.sub) + '</small>' : '') + '</div></div>' +
-    '<div class="tags">' + tags.join('') + '</div><div class="txt">' + esc((h.text || '').slice(0, 220)) + '</div>' +
-    '<div class="loc">' + esc(ago(h.t, now)) + (h.source ? ' · ' + esc(h.source) : '') + '</div>' +
-    '<div class="acts">' + phones + link + '<button class="busy" data-id="' + esc(h.id) + '"' + (done ? ' disabled' : '') + '>' + (done ? 'Rahmat' : 'Band bo\'lib qolgan') + '</button></div></div>';
-}
-function render() {
-  const now = Date.now();
-  const res = applyFilters(ALL, filters());
-  $('count').textContent = res.length + " ta e'lon";
-  const part = res.slice(0, shown);
-  $('list').innerHTML = part.length
-    ? part.map(h => card(h, now)).join('') + (res.length > shown ? '<div class="msg"><button class="btn" id="more">Yana ko\'rsatish</button></div>' : '')
-    : '<div class="msg">E\'lon topilmadi. Filtrlarni o\'zgartirib ko\'ring.</div>';
-}
-function showErr(e) {
-  const code = e && e.code ? e.code : '';
-  const map = {
-    'permission-denied': "Ruxsat yo'q. Firebase → Firestore → Rules bo'limida houses uchun o'qish ruxsati joylanganini tekshiring.",
-    'failed-precondition': "Firebase indeks so'rayapti. Xato matnidagi havolani brauzerda ochib, indeksni yarating.",
-    'unavailable': 'Internetga ulanib bo\'lmadi. Aloqani tekshirib, qayta urinib ko\'ring.',
-    'timeout': 'Javob kelmadi. Internetni tekshiring yoki firebaseConfig to\'g\'riligini tekshiring.'
-  };
-  $('list').innerHTML = '<div class="err"><b>E\'lonlarni yuklab bo\'lmadi.</b><br>' + esc(map[code] || (e && e.message) || 'Noma\'lum xato') +
-    '<small>' + esc((code ? code + ': ' : '') + ((e && e.message) || '')) + '</small></div><div class="msg"><button class="btn" id="retry">Yana yuklash</button></div>';
-  $('count').textContent = '';
-}
-const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej({code: 'timeout', message: 'Server javob bermadi'}), ms))]);
-
-async function load(force) {
-  $('list').innerHTML = '<div class="msg">Yuklanmoqda...</div>';
-  try {
-    let c = null;
-    try { c = JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) {}
-    if (!force && c && Date.now() - c.t < TTL) { ALL = c.items; }
-    else {
-      if (!CFG.apiKey || CFG.apiKey.indexOf('BU_YERGA') === 0) throw new Error("index.html boshidagi CFG (firebaseConfig) to'ldirilmagan");
-      if (!window.firebase) throw {code: 'unavailable', message: 'Firebase kutubxonasi yuklanmadi'};
-      if (!firebase.apps.length) firebase.initializeApp(CFG);
-      const snap = await withTimeout(firebase.firestore().collection('houses').where('status', '==', 'on').limit(300).get(), 20000);
-      ALL = snap.docs.map(d => {
-        const x = d.data(); x.id = d.id;
-        x.t = x.createdAt && x.createdAt.toMillis ? x.createdAt.toMillis() : 0;
-        delete x.createdAt; delete x.dedup;
-        return x;
-      });
-      try { localStorage.setItem(LS, JSON.stringify({t: Date.now(), items: ALL})); } catch (e) {}
-    }
-    render();
-  } catch (e) { showErr(e); }
-}
-
-['city', 'type', 'rooms', 'who', 'sort', 'student', 'furn', 'nobroker'].forEach(id => $(id).addEventListener('change', () => { shown = PAGE; render(); }));
-['max', 'q'].forEach(id => $(id).addEventListener('input', () => { shown = PAGE; render(); }));
-$('reload').addEventListener('click', () => load(true));
-$('list').addEventListener('click', async ev => {
-  const t = ev.target;
-  if (t.id === 'more') { shown += PAGE; render(); }
-  else if (t.id === 'retry') load(true);
-  else if (t.classList && t.classList.contains('busy')) {
-    const id = t.getAttribute('data-id');
-    try {
-      await firebase.firestore().collection('houses').doc(id).update({busy: firebase.firestore.FieldValue.increment(1)});
-      const d = JSON.parse(localStorage.getItem('uy_busy') || '[]'); d.push(id);
-      localStorage.setItem('uy_busy', JSON.stringify(d));
-      t.textContent = 'Rahmat'; t.disabled = true;
-    } catch (e) { alert('Yuborib bo\'lmadi: ' + ((e && e.code) || (e && e.message) || '')); }
-  }
-});
-load(false);
-</script>
-</body>
-</html>
+:root{--bg:#f4f6fb;--cd:#fff;--tx:#111827;--mu:#6b7280;--pr:#2563eb;--bd:#e5e7eb}
+@media(prefers-color-scheme:dark){:root{--bg:#0f172a;--cd:#1e293b;--tx:#f1f5f9;--mu:#94a3b8;--bd:#334155}}
+*{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{position:sticky;top:0;z-index:5;background:var(--pr);color:#fff;padding:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px),12px) 12px 10px}
+h1{margin:0 0 8px;font-size:19px}.f{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+select,input[type=number]{padding:7px;border-radius:8px;border:0;font-size:14px;width:31%}
+label{font-size:13px;display:flex;align-items:center;gap:4px}
+main{padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px))}
+.c{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+.p{font-weight:700;font-size:17px;color:var(--pr)}.t{font-weight:600}.m{color:var(--mu);font-size:13px;margin:3px 0}
+.g span{display:inline-block;background:var(--bg);border-radius:6px;padding:2px 7px;margin:3px 3px 0 0;font-size:12px}
+.b{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.b a,.b button{flex:1;min-width:30%;text-align:center;padding:8px 4px;border-radius:8px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);font-size:13px;text-decoration:none}
+.b .call{background:var(--pr);color:#fff;border-color:var(--pr)}
+#st{text-align:center;color:var(--mu);padding:16px}#more{display:block;margin:6px auto;padding:10px 22px;border-radius:10px;border:0;background:var(--pr);color:#fff;font-size:14px}
+[hidden]{display:none!important}</style></head><body>
+<header><h1>🏠 Uy ijara</h1><div class="f">
+<select id="city"><option value="">Shahar</option><option>Namangan</option><option>Toshkent</option></select>
+<select id="type"><option value="">Turi</option><option value="kvartira">Kvartira</option><option value="hovli">Hovli</option><option value="joy">Joy</option></select>
+<select id="rooms"><option value="">Xona</option><option>1</option><option>2</option><option>3</option><option value="4">4+</option></select>
+<input id="max" type="number" placeholder="≤ mln so'm">
+<label><input type="checkbox" id="stu">Talabaga</label><label><input type="checkbox" id="fur">Jihozli</label></div></header>
+<main><div id="list"></div><div id="st">Yuklanmoqda…</div><button id="more" hidden>Yana yuklash</button></main>
+<script type="module">
+const $=id=>document.getElementById(id),PAGE=40,FB="https://www.gstatic.com/firebasejs/10.12.2/";
+addEventListener("error",e=>{$("st").textContent="JS xato: "+e.message});
+addEventListener("unhandledrejection",e=>{$("st").textContent="Xato: "+(e.reason?.message||e.reason)});
+const CFG={apiKey:"YOUR_API_KEY",authDomain:"YOUR_PROJECT.firebaseapp.com",projectId:"YOUR_PROJECT",appId:"YOUR_APP_ID"};
+const EMAIL="YOUR_EMAIL";   // shikoyatlar shu manzilga boradi
+let fa,fs;
+try{[fa,fs]=await Promise.all([import(FB+"firebase-app.js"),import(FB+"firebase-firestore.js")])}
+catch(e){$("st").textContent="Firebase yuklanmadi (internet?): "+e.message;throw e}
+const{collection,query,orderBy,limit,startAfter,getDocs,doc,updateDoc,increment}=fs;
+const db=fs.initializeFirestore(fa.initializeApp(CFG),{experimentalAutoDetectLongPolling:true});
+let all=[],last=null,end=false,loading=false;
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function price(h){if(!h.price_amount)return"Narx kelishiladi";const a=h.price_amount;
+ let s=h.currency==="USD"?"$"+a.toLocaleString("ru"):a>=1e6?(a/1e6).toFixed(1).replace(".0","")+" mln so'm":a.toLocaleString("ru")+" so'm";
+ return s+(h.price_type==="kishi"?" / kishiga":h.price_type==="xona"?" / xonasi":"")}
+function ok(h){if(h.status!=="on")return false;
+ const c=$("city").value,t=$("type").value,r=$("rooms").value,m=+$("max").value;
+ if(c&&h.city!==c)return false;if(t&&h.type!==t)return false;
+ if(r&&!(r==="4"?h.rooms>=4:h.rooms==r))return false;
+ if(m&&!(h.price_uzs&&h.price_uzs<=m*1e6))return false;
+ if($("stu").checked&&h.student==="yoq")return false;
+ if($("fur").checked&&h.furnished!=="jihozli")return false;return true}
+function card(h){const ph=(h.phones||[])[0],d=h.createdAt?.toDate?Math.floor((Date.now()-h.createdAt.toDate())/864e5):null;
+ const tags=[h.floor&&h.floor+"-qavat",h.furnished==="jihozli"&&"Jihozli",h.student==="ha"&&"Talabaga mumkin",
+  (h.for_whom||[]).includes("qiz")&&"Qizlarga",h.broker==="makler"&&"Makler",h.broker==="maklersiz"&&"Maklersiz",h.utilities_extra&&"Komunalka alohida"].filter(Boolean);
+ const done=localStorage.getItem("b_"+h.id);
+ return`<div class="c"><div class="p">${esc(price(h))}</div><div class="t">${esc(h.title||"Uy")}</div>
+ <div class="m">${esc([...(h.places||[])].join(", ")||h.address||"")}${d!=null?" · "+(d?d+" kun oldin":"bugun"):""}</div>
+ <div class="g">${tags.map(x=>`<span>${esc(x)}</span>`).join("")}</div>
+ <div class="m">${esc((h.text||"").slice(0,180))}</div>
+ <div class="b">${ph?`<a class="call" href="tel:${esc(ph)}">📞 Qo'ng'iroq</a>`:""}
+ ${h.link?`<a href="${esc(h.link)}" target="_blank">Asl e'lon</a>`:""}
+ <button data-a="busy" data-id="${esc(h.id)}" ${done?"disabled":""}>${done?"Belgilandi ✓":"Band"+(h.busy?" ("+h.busy+")":"")}</button>
+ <a href="mailto:${EMAIL}?subject=Shikoyat&body=E'lon ID: ${esc(h.id)}">Shikoyat</a></div></div>`}
+function render(){const l=all.filter(ok);$("list").innerHTML=l.map(card).join("");
+ $("st").textContent=l.length?"":((end?"E'lon topilmadi":"Bu filtrga mos e'lon hali yo'q, yana yuklang")+" [bazadan "+all.length+" ta, faol "+all.filter(h=>h.status==="on").length+" ta]");
+ $("more").hidden=end}
+async function load(){if(loading||end)return;loading=true;$("st").textContent="Yuklanmoqda…";
+ try{const s=await Promise.race([getDocs(query(collection(db,"houses"),orderBy("createdAt","desc"),...(last?[startAfter(last)]:[]),limit(PAGE))),new Promise((_,r)=>setTimeout(()=>r(new Error("vaqt tugadi: Firestore'ga ulanib bo'lmadi")),15000))]);
+  s.forEach(d=>all.push({id:d.id,...d.data()}));last=s.docs[s.docs.length-1]||last;if(s.size<PAGE)end=true}
+ catch(e){loading=false;$("st").textContent="Xato: "+(e.code||e.message);return}
+ loading=false;render()}
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-a=busy]");if(!b)return;
+ b.disabled=true;try{await updateDoc(doc(db,"houses",b.dataset.id),{busy:increment(1)});localStorage.setItem("b_"+b.dataset.id,"1");b.textContent="Belgilandi ✓"}catch(_){b.disabled=false}});
+["city","type","rooms","max","stu","fur"].forEach(i=>$(i).addEventListener("input",render));
+$("more").onclick=load;load();
+</script></body></html>
