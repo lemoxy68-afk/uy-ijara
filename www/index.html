@@ -17,7 +17,7 @@ main{padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px))}
 .b a,.b button{flex:1;min-width:30%;text-align:center;padding:8px 4px;border-radius:8px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);font-size:13px;text-decoration:none}
 .b .call{background:var(--pr);color:#fff;border-color:var(--pr)}
 #st{text-align:center;color:var(--mu);padding:16px}#more{display:block;margin:6px auto;padding:10px 22px;border-radius:10px;border:0;background:var(--pr);color:#fff;font-size:14px}
-</style></head><body>
+[hidden]{display:none!important}</style></head><body>
 <header><h1>🏠 Uy ijara</h1><div class="f">
 <select id="city"><option value="">Shahar</option><option>Namangan</option><option>Toshkent</option></select>
 <select id="type"><option value="">Turi</option><option value="kvartira">Kvartira</option><option value="hovli">Hovli</option><option value="joy">Joy</option></select>
@@ -56,12 +56,12 @@ function card(h){const ph=(h.phones||[])[0],d=h.createdAt?.toDate?Math.floor((Da
  <button data-a="busy" data-id="${esc(h.id)}" ${done?"disabled":""}>${done?"Belgilandi ✓":"Band"+(h.busy?" ("+h.busy+")":"")}</button>
  <a href="mailto:${EMAIL}?subject=Shikoyat&body=E'lon ID: ${esc(h.id)}">Shikoyat</a></div></div>`}
 function render(){const l=all.filter(ok);$("list").innerHTML=l.map(card).join("");
- $("st").textContent=l.length?"":(end?"E'lon topilmadi":"Bu filtrga mos e'lon hali yo'q, yana yuklang");
+ $("st").textContent=l.length?"":((end?"E'lon topilmadi":"Bu filtrga mos e'lon hali yo'q, yana yuklang")+" [bazadan "+all.length+" ta, faol "+all.filter(h=>h.status==="on").length+" ta]");
  $("more").hidden=end}
 async function load(){if(loading||end)return;loading=true;$("st").textContent="Yuklanmoqda…";
  try{const s=await getDocs(query(collection(db,"houses"),orderBy("createdAt","desc"),...(last?[startAfter(last)]:[]),limit(PAGE)));
   s.forEach(d=>all.push({id:d.id,...d.data()}));last=s.docs[s.docs.length-1]||last;if(s.size<PAGE)end=true}
- catch(e){loading=false;$("st").textContent="Xato: internetni tekshiring";return}
+ catch(e){loading=false;$("st").textContent="Xato: "+(e.code||e.message);return}
  loading=false;render()}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-a=busy]");if(!b)return;
  b.disabled=true;try{await updateDoc(doc(db,"houses",b.dataset.id),{busy:increment(1)});localStorage.setItem("b_"+b.dataset.id,"1");b.textContent="Belgilandi ✓"}catch(_){b.disabled=false}});
