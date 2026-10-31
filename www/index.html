@@ -1,0 +1,70 @@
+<!DOCTYPE html><html lang="uz"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Uy ijara</title>
+<style>
+:root{--bg:#f4f6fb;--cd:#fff;--tx:#111827;--mu:#6b7280;--pr:#2563eb;--bd:#e5e7eb}
+@media(prefers-color-scheme:dark){:root{--bg:#0f172a;--cd:#1e293b;--tx:#f1f5f9;--mu:#94a3b8;--bd:#334155}}
+*{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{position:sticky;top:0;z-index:5;background:var(--pr);color:#fff;padding:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px),12px) 12px 10px}
+h1{margin:0 0 8px;font-size:19px}.f{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+select,input[type=number]{padding:7px;border-radius:8px;border:0;font-size:14px;width:31%}
+label{font-size:13px;display:flex;align-items:center;gap:4px}
+main{padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px))}
+.c{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+.p{font-weight:700;font-size:17px;color:var(--pr)}.t{font-weight:600}.m{color:var(--mu);font-size:13px;margin:3px 0}
+.g span{display:inline-block;background:var(--bg);border-radius:6px;padding:2px 7px;margin:3px 3px 0 0;font-size:12px}
+.b{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.b a,.b button{flex:1;min-width:30%;text-align:center;padding:8px 4px;border-radius:8px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);font-size:13px;text-decoration:none}
+.b .call{background:var(--pr);color:#fff;border-color:var(--pr)}
+#st{text-align:center;color:var(--mu);padding:16px}#more{display:block;margin:6px auto;padding:10px 22px;border-radius:10px;border:0;background:var(--pr);color:#fff;font-size:14px}
+</style></head><body>
+<header><h1>🏠 Uy ijara</h1><div class="f">
+<select id="city"><option value="">Shahar</option><option>Namangan</option><option>Toshkent</option></select>
+<select id="type"><option value="">Turi</option><option value="kvartira">Kvartira</option><option value="hovli">Hovli</option><option value="joy">Joy</option></select>
+<select id="rooms"><option value="">Xona</option><option>1</option><option>2</option><option>3</option><option value="4">4+</option></select>
+<input id="max" type="number" placeholder="≤ mln so'm">
+<label><input type="checkbox" id="stu">Talabaga</label><label><input type="checkbox" id="fur">Jihozli</label></div></header>
+<main><div id="list"></div><div id="st">Yuklanmoqda…</div><button id="more" hidden>Yana yuklash</button></main>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import{getFirestore,collection,query,orderBy,limit,startAfter,getDocs,doc,updateDoc,increment}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const CFG={apiKey:"YOUR_API_KEY",authDomain:"YOUR_PROJECT.firebaseapp.com",projectId:"YOUR_PROJECT",appId:"YOUR_APP_ID"};
+const EMAIL="YOUR_EMAIL";   // shikoyatlar shu manzilga boradi
+const db=getFirestore(initializeApp(CFG)),$=id=>document.getElementById(id),PAGE=40;
+let all=[],last=null,end=false,loading=false;
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function price(h){if(!h.price_amount)return"Narx kelishiladi";const a=h.price_amount;
+ let s=h.currency==="USD"?"$"+a.toLocaleString("ru"):a>=1e6?(a/1e6).toFixed(1).replace(".0","")+" mln so'm":a.toLocaleString("ru")+" so'm";
+ return s+(h.price_type==="kishi"?" / kishiga":h.price_type==="xona"?" / xonasi":"")}
+function ok(h){if(h.status!=="on")return false;
+ const c=$("city").value,t=$("type").value,r=$("rooms").value,m=+$("max").value;
+ if(c&&h.city!==c)return false;if(t&&h.type!==t)return false;
+ if(r&&!(r==="4"?h.rooms>=4:h.rooms==r))return false;
+ if(m&&!(h.price_uzs&&h.price_uzs<=m*1e6))return false;
+ if($("stu").checked&&h.student==="yoq")return false;
+ if($("fur").checked&&h.furnished!=="jihozli")return false;return true}
+function card(h){const ph=(h.phones||[])[0],d=h.createdAt?.toDate?Math.floor((Date.now()-h.createdAt.toDate())/864e5):null;
+ const tags=[h.floor&&h.floor+"-qavat",h.furnished==="jihozli"&&"Jihozli",h.student==="ha"&&"Talabaga mumkin",
+  (h.for_whom||[]).includes("qiz")&&"Qizlarga",h.broker==="makler"&&"Makler",h.broker==="maklersiz"&&"Maklersiz",h.utilities_extra&&"Komunalka alohida"].filter(Boolean);
+ const done=localStorage.getItem("b_"+h.id);
+ return`<div class="c"><div class="p">${esc(price(h))}</div><div class="t">${esc(h.title||"Uy")}</div>
+ <div class="m">${esc([...(h.places||[])].join(", ")||h.address||"")}${d!=null?" · "+(d?d+" kun oldin":"bugun"):""}</div>
+ <div class="g">${tags.map(x=>`<span>${esc(x)}</span>`).join("")}</div>
+ <div class="m">${esc((h.text||"").slice(0,180))}</div>
+ <div class="b">${ph?`<a class="call" href="tel:${esc(ph)}">📞 Qo'ng'iroq</a>`:""}
+ ${h.link?`<a href="${esc(h.link)}" target="_blank">Asl e'lon</a>`:""}
+ <button data-a="busy" data-id="${esc(h.id)}" ${done?"disabled":""}>${done?"Belgilandi ✓":"Band"+(h.busy?" ("+h.busy+")":"")}</button>
+ <a href="mailto:${EMAIL}?subject=Shikoyat&body=E'lon ID: ${esc(h.id)}">Shikoyat</a></div></div>`}
+function render(){const l=all.filter(ok);$("list").innerHTML=l.map(card).join("");
+ $("st").textContent=l.length?"":(end?"E'lon topilmadi":"Bu filtrga mos e'lon hali yo'q, yana yuklang");
+ $("more").hidden=end}
+async function load(){if(loading||end)return;loading=true;$("st").textContent="Yuklanmoqda…";
+ try{const s=await getDocs(query(collection(db,"houses"),orderBy("createdAt","desc"),...(last?[startAfter(last)]:[]),limit(PAGE)));
+  s.forEach(d=>all.push({id:d.id,...d.data()}));last=s.docs[s.docs.length-1]||last;if(s.size<PAGE)end=true}
+ catch(e){loading=false;$("st").textContent="Xato: internetni tekshiring";return}
+ loading=false;render()}
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-a=busy]");if(!b)return;
+ b.disabled=true;try{await updateDoc(doc(db,"houses",b.dataset.id),{busy:increment(1)});localStorage.setItem("b_"+b.dataset.id,"1");b.textContent="Belgilandi ✓"}catch(_){b.disabled=false}});
+["city","type","rooms","max","stu","fur"].forEach(i=>$(i).addEventListener("input",render));
+$("more").onclick=load;load();
+</script></body></html>
