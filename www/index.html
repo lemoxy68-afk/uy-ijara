@@ -24,7 +24,7 @@ main{padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px))}
 <select id="rooms"><option value="">Xona</option><option>1</option><option>2</option><option>3</option><option value="4">4+</option></select>
 <input id="max" type="number" placeholder="≤ mln so'm">
 <label><input type="checkbox" id="stu">Talabaga</label><label><input type="checkbox" id="fur">Jihozli</label></div></header>
-<main><div id="list"></div><div id="st">Yuklanmoqda…</div><button id="more" hidden>Yana yuklash</button></main>
+<main><div id="list"></div><div id="st">Yuklanmoqda…</div><button id="more" hidden>Yana ko'rsatish</button></main>
 <script src="config.js"></script>
 <script type="module">
 const $=id=>document.getElementById(id),PAGE=40;
@@ -43,7 +43,12 @@ async function api(url,opt){const c=new AbortController(),t=setTimeout(()=>c.abo
  try{const r=await fetch(url,{...opt,signal:c.signal}),j=await r.json();
   if(!r.ok)throw new Error((j.error?.status||r.status)+": "+(j.error?.message||"").slice(0,120));return j}
  catch(e){throw new Error(e.name==="AbortError"?"vaqt tugadi: server javob bermadi":e.message)}finally{clearTimeout(t)}}
-let all=[],token="",end=false,loading=false;
+const KEEP=["status","city","type","rooms","floor","price_amount","currency","price_uzs","price_type","places","address","furnished","student","for_whom","broker","phones","utilities_extra","text","link","busy","title"];
+const slim=d=>{const f=Object.fromEntries(Object.entries(d.fields||{}).map(([a,b])=>[a,val(b)])),h={id:d.name.split("/").pop(),createdAt:+(f.createdAt||0)};
+ KEEP.forEach(k=>{if(f[k]!==undefined)h[k]=f[k]});if(h.text)h.text=h.text.slice(0,200);return h};
+const WEEK=8*864e5,KEY="uy_cache_v1";let all=[],shown=PAGE,ts=0,fullAt=0,loading=false;
+try{const c=JSON.parse(localStorage.getItem(KEY)||"null");if(c&&Date.now()-c.f<864e5){all=c.items;ts=c.t;fullAt=c.f}}catch(_){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({f:fullAt,t:ts,items:all}))}catch(_){}};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function price(h){if(!h.price_amount)return"Narx kelishiladi";const a=h.price_amount;
  let s=h.currency==="USD"?"$"+a.toLocaleString("ru"):a>=1e6?(a/1e6).toFixed(1).replace(".0","")+" mln so'm":a.toLocaleString("ru")+" so'm";
@@ -52,7 +57,7 @@ function ok(h){if(h.status!=="on")return false;
  const c=$("city").value,t=$("type").value,r=$("rooms").value,m=+$("max").value;
  if(c&&h.city!==c)return false;if(t&&h.type!==t)return false;
  if(r&&!(r==="4"?h.rooms>=4:h.rooms==r))return false;
- if(m&&!(h.price_uzs&&h.price_uzs<=m*1e6))return false;
+ if(m){const u=h.price_uzs??(h.price_amount?(h.currency==="USD"?h.price_amount*12500:h.price_amount):null);if(!(u&&u<=m*1e6))return false}
  if($("stu").checked&&h.student==="yoq")return false;
  if($("fur").checked&&h.furnished!=="jihozli")return false;return true}
 function card(h){const ph=(h.phones||[])[0],d=h.createdAt?Math.floor((Date.now()-h.createdAt)/864e5):null;
@@ -67,21 +72,24 @@ function card(h){const ph=(h.phones||[])[0],d=h.createdAt?Math.floor((Date.now()
  ${h.link?`<a href="${esc(h.link)}" target="_blank">Asl e'lon</a>`:""}
  <button data-a="busy" data-id="${esc(h.id)}" ${done?"disabled":""}>${done?"Belgilandi ✓":"Band"+(h.busy?" ("+h.busy+")":"")}</button>
  <a href="mailto:${EMAIL}?subject=Shikoyat&body=E'lon ID: ${esc(h.id)}">Shikoyat</a></div></div>`}
-function render(){const l=all.filter(ok);$("list").innerHTML=l.map(card).join("");
- $("st").textContent=l.length?"":((end?"E'lon topilmadi":"Bu filtrga mos e'lon hali yo'q, yana yuklang")+" [bazadan "+all.length+" ta, faol "+all.filter(h=>h.status==="on").length+" ta]");
- $("more").hidden=end}
-async function load(){if(loading||end)return;
+function render(){const l=all.filter(ok);$("list").innerHTML=l.slice(0,shown).map(card).join("");
+ $("st").textContent=l.length?l.length+" ta e'lon":"E'lon topilmadi";$("more").hidden=l.length<=shown}
+async function sync(){if(loading)return;
  if(!/^AIza/.test(CFG.apiKey||"")){$("st").textContent="config.js ichida apiKey yozilmagan (AIza... bilan boshlanadi)";return}
- loading=true;$("st").textContent="Yuklanmoqda…";
- try{const j=await api(API+"/houses?pageSize="+PAGE+"&orderBy="+encodeURIComponent("createdAt desc")+"&key="+CFG.apiKey+(token?"&pageToken="+encodeURIComponent(token):""));
-  (j.documents||[]).forEach(d=>all.push({id:d.name.split("/").pop(),...Object.fromEntries(Object.entries(d.fields||{}).map(([a,b])=>[a,val(b)]))}));
-  token=j.nextPageToken||"";if(!token)end=true}
- catch(e){loading=false;$("st").textContent="Xato: "+e.message;return}
+ loading=true;if(!all.length)$("st").textContent="Yuklanmoqda…";else render();
+ try{const q={from:[{collectionId:"houses"}],orderBy:[{field:{fieldPath:"createdAt"},direction:"DESCENDING"}],limit:300};
+  if(ts)q.where={fieldFilter:{field:{fieldPath:"createdAt"},op:"GREATER_THAN_OR_EQUAL",value:{timestampValue:new Date(ts).toISOString()}}};
+  const j=await api(API+":runQuery?key="+CFG.apiKey,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({structuredQuery:q})});
+  const m=new Map(all.map(h=>[h.id,h]));j.forEach(r=>{if(r.document){const h=slim(r.document);m.set(h.id,h)}});
+  all=[...m.values()].filter(h=>Date.now()-h.createdAt<WEEK).sort((a,b)=>b.createdAt-a.createdAt);
+  ts=all.length?all[0].createdAt:ts;if(!fullAt)fullAt=Date.now();save()}
+ catch(e){loading=false;if(!all.length){$("st").textContent="Xato: "+e.message;return}}
  loading=false;render()}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-a=busy]");if(!b)return;
  b.disabled=true;try{await api(API+":commit?key="+CFG.apiKey,{method:"POST",headers:{"Content-Type":"application/json"},
   body:JSON.stringify({writes:[{transform:{document:"projects/"+CFG.projectId+"/databases/(default)/documents/houses/"+b.dataset.id,fieldTransforms:[{fieldPath:"busy",increment:{integerValue:"1"}}]}}]})});
-  localStorage.setItem("b_"+b.dataset.id,"1");b.textContent="Belgilandi ✓"}catch(_){b.disabled=false}});
-["city","type","rooms","max","stu","fur"].forEach(i=>$(i).addEventListener("input",render));
-$("more").onclick=load;load();
+  localStorage.setItem("b_"+b.dataset.id,"1");b.textContent="Belgilandi ✓";const h=all.find(x=>x.id===b.dataset.id);if(h){h.busy=(h.busy||0)+1;save()}}catch(_){b.disabled=false}});
+["city","type","rooms","max","stu","fur"].forEach(i=>$(i).addEventListener("input",()=>{shown=PAGE;render()}));
+$("more").onclick=()=>{shown+=PAGE;render()};
+if(all.length)render();sync();
 </script></body></html>
