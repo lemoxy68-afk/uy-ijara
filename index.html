@@ -1,0 +1,184 @@
+<!DOCTYPE html><html lang="uz"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Uy ijara</title>
+<style>
+:root{--bg:#f4f6fb;--cd:#fff;--tx:#111827;--mu:#6b7280;--pr:#2563eb;--bd:#e5e7eb}
+@media(prefers-color-scheme:dark){:root{--bg:#0f172a;--cd:#1e293b;--tx:#f1f5f9;--mu:#94a3b8;--bd:#334155}}
+*{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{position:sticky;top:0;z-index:5;background:var(--pr);color:#fff;padding:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px),12px) 12px 10px}
+h1{margin:0 0 8px;font-size:19px}.f{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+select,input[type=number]{padding:7px;border-radius:8px;border:0;font-size:14px;width:31%}
+label{font-size:13px;display:flex;align-items:center;gap:4px}
+main{padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px))}
+.c{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+.p{font-weight:700;font-size:17px;color:var(--pr)}.t{font-weight:600}.m{color:var(--mu);font-size:13px;margin:3px 0}
+.g span{display:inline-block;background:var(--bg);border-radius:6px;padding:2px 7px;margin:3px 3px 0 0;font-size:12px}
+.b{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.b a,.b button{flex:1;min-width:30%;text-align:center;padding:8px 4px;border-radius:8px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);font-size:13px;text-decoration:none}
+.b .call{background:var(--pr);color:#fff;border-color:var(--pr)}
+#st{text-align:center;color:var(--mu);padding:16px}#more{display:block;margin:6px auto;padding:10px 22px;border-radius:10px;border:0;background:var(--pr);color:#fff;font-size:14px}
+[hidden]{display:none!important}.stu{font-weight:700;background:#ffffff33;padding:4px 8px;border-radius:8px}
+.addb{padding:7px 10px;border-radius:8px;border:0;background:#fff;color:var(--pr);font-weight:700;font-size:13px}
+#m{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20;display:none;align-items:flex-end}#m.on{display:flex}
+#fm{background:var(--cd);color:var(--tx);width:100%;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 14px calc(16px + env(safe-area-inset-bottom,0px))}
+#fm h2{margin:0 0 4px;font-size:17px}#fm label{display:block;font-size:12px;color:var(--mu);margin:9px 0 3px}
+#fm select,#fm input,#fm textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;font:inherit;font-size:14px;background:var(--bg);color:var(--tx)}
+#fm .two{display:flex;gap:6px}#fm .two>*{flex:1;min-width:0}#fe{color:#dc2626;font-size:13px;margin-top:8px}
+#fm .b button{padding:10px}#fm .b #fok{background:var(--pr);color:#fff;border-color:var(--pr)}
+</style></head><body>
+<header><h1>🏠 Uy ijara</h1><div class="f">
+<select id="city"><option value="">Shahar</option><option>Namangan</option><option>Toshkent</option></select>
+<select id="type"><option value="">Turi</option><option value="kvartira">Kvartira</option><option value="hovli">Hovli</option><option value="joy">Joy</option></select>
+<select id="uni" hidden><option value="">Universitet (hammasi)</option></select><select id="rooms"><option value="">Xona</option><option>1</option><option>2</option><option>3</option><option value="4">4+</option></select>
+<input id="max" type="number" placeholder="≤ mln so'm">
+<label class="stu"><input type="checkbox" id="stu">🎓 Talabalar uchun</label><label><input type="checkbox" id="fur">Jihozli</label><select id="sort"><option value="p">Arzonidan</option><option value="d">Qimmatidan</option><option value="n">Yangilari</option></select><button id="add" class="addb">➕ E'lon berish</button></div></header>
+<main><div id="list"></div><div id="st">Yuklanmoqda…</div><button id="more" hidden>Yana ko'rsatish</button></main>
+<div id="m"><div id="fm">
+<h2>E'lon berish</h2>
+<div class="two"><div><label>Shahar</label><select id="fc"><option>Namangan</option><option>Toshkent</option></select></div>
+<div><label>Turi</label><select id="ft"><option value="kvartira">Kvartira</option><option value="hovli">Hovli</option><option value="joy">Joy / yotoqxona</option></select></div></div>
+<div id="fr"><label>Xonalar soni</label><select id="fro"><option value="">Ko'rsatilmagan</option><option>1</option><option>2</option><option>3</option><option value="4">4+</option></select></div>
+<label>Narxi (bo'sh qoldirsangiz "kelishiladi")</label>
+<div class="two"><input id="fp" type="number" inputmode="decimal" placeholder="250"><select id="fcu"><option value="USD">$ dollar</option><option value="UZS">so'm</option></select><select id="fpt"><option value="butun">Butun uy</option><option value="kishi">Kishi boshiga</option><option value="xona">Xona uchun</option></select></div>
+<label>Manzil / mo'ljal *</label><input id="fa" type="text" maxlength="120" placeholder="Masalan: Chorsu bozori yaqinida">
+<div class="two"><div><label>Jihoz</label><select id="ffu"><option value="jihozli">Jihozli</option><option value="jihozsiz">Jihozsiz</option></select></div>
+<div><label>Kimga</label><select id="fw"><option value="">Hammaga</option><option value="qiz">Qizlarga</option><option value="ogil">O'g'il bolalarga</option><option value="oila">Oilaga</option></select></div></div>
+<div class="two"><div><label>Talabalarga</label><select id="fs"><option value="ha">Beriladi</option><option value="yoq">Berilmaydi</option><option value="nomalum">Ko'rsatmayman</option></select></div>
+<div><label>Siz kimsiz</label><select id="fb"><option value="maklersiz">Uy egasi (maklersiz)</option><option value="makler">Makler</option></select></div></div>
+<label>Telefon raqam *</label><div class="two"><input value="+998" disabled style="max-width:68px"><input id="fph" type="text" inputmode="numeric" maxlength="13" placeholder="90 123 45 67"></div>
+<label>Izoh</label><textarea id="fx" rows="3" maxlength="400" placeholder="Qo'shimcha ma'lumot"></textarea>
+<div id="fe"></div><div class="b"><button id="fcn">Bekor</button><button id="fok">Joylash</button></div>
+</div></div>
+<script src="config.js"></script>
+<script type="module">
+const $=id=>document.getElementById(id),PAGE=40;
+addEventListener("error",e=>{$("st").textContent="JS xato: "+e.message});
+addEventListener("unhandledrejection",e=>{$("st").textContent="Xato: "+(e.reason?.message||e.reason)});
+const CFG=window.CFG||{},EMAIL=window.EMAIL||"";
+const API="https://firestore.googleapis.com/v1/projects/"+CFG.projectId+"/databases/(default)/documents";
+const val=v=>{const k=Object.keys(v)[0],x=v[k];
+ if(k==="stringValue"||k==="booleanValue")return x;
+ if(k==="integerValue"||k==="doubleValue")return +x;
+ if(k==="timestampValue")return new Date(x);
+ if(k==="arrayValue")return(x.values||[]).map(val);
+ if(k==="mapValue")return Object.fromEntries(Object.entries(x.fields||{}).map(([a,b])=>[a,val(b)]));
+ return null};
+async function api(url,opt){const c=new AbortController(),t=setTimeout(()=>c.abort(),15000);
+ try{const r=await fetch(url,{...opt,signal:c.signal}),j=await r.json();
+  if(!r.ok)throw new Error((j.error?.status||r.status)+": "+(j.error?.message||"").slice(0,120));return j}
+ catch(e){throw new Error(e.name==="AbortError"?"vaqt tugadi: server javob bermadi":e.message)}finally{clearTimeout(t)}}
+const UNI=window.UNI||{
+"NamDTU":"namdtu|nam\\s?dtu|nam\\s?m?qi\\b|pali?tex|politex|politeh|do.?stlik|дўстлик|дустлик|yangi\\s?bozor|янги\\s?бозор",
+"NamDU":"namdu|nam\\s?du\\b|chorsu|чорсу|nam\\s?pi\\b|31\\s*-?\\s*(?:son\\s*)?(?:maktab|мактаб)|yuksalish|юксалиш|orzu\\s?(?:sity|city|siti)|орзу\\s?сити|(?<!dash)kola\\s*ko.?cha",
+"UBS":"\\bubs\\b|убс|\\bntd\\b|нтд|[gh]?ospital|госпитал|shamshiboy|шамшибой|promzona|промзона|oxunboboy?e?v|охунбобоев|yangi\\s?bozor|янги\\s?бозор",
+"Turon":"turon|турон|pi?tilitka|pyatiletka|пятилетка|питилитка|naberejn\\w*|набережн\\w*",
+"KIUT":"kiut|киут|dash\\s?kola|дашкола|yuksalish|юксалиш|orzu\\s?(?:sity|city|siti)|орзу\\s?сити"};
+const UNIRE=Object.entries(UNI).map(([k,v])=>[k,new RegExp(v,"i")]);
+const KEEP=["status","city","type","rooms","floor","price_amount","currency","price_uzs","price_type","places","address","furnished","student","for_whom","broker","phones","utilities_extra","text","link","busy","title"];
+const slim=d=>{const f=Object.fromEntries(Object.entries(d.fields||{}).map(([a,b])=>[a,val(b)])),h={id:d.name.split("/").pop(),createdAt:+(f.createdAt||0)};
+ KEEP.forEach(k=>{if(f[k]!==undefined)h[k]=f[k]});
+ const t=[f.text,f.address,(f.places||[]).join(" ")].join(" ");h.near=UNIRE.filter(([k,r])=>r.test(t)).map(([k])=>k);
+ const c=/(\d{1,2})\s*(?:ta\s*)?(?:kishi|nafar|qiz|bola|yigit|o'g'il|talaba|student)/i.exec(f.text||"");if(c&&+c[1]>1&&+c[1]<=8)h.cap=+c[1];
+ if(h.text)h.text=h.text.slice(0,200);return h};
+const lsJ=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||"null");return v==null?d:v}catch(_){return d}};
+const lsAdd=(k,v)=>{const a=lsJ(k,[]);a.push(v);try{localStorage.setItem(k,JSON.stringify(a))}catch(_){}};
+const WEEK=8*864e5,KEY="uy_cache_v2";let all=[],shown=PAGE,ts=0,fullAt=0,loading=false;
+try{const c=JSON.parse(localStorage.getItem(KEY)||"null");if(c&&Date.now()-c.f<864e5){all=c.items;ts=c.t;fullAt=c.f}}catch(_){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({f:fullAt,t:ts,items:all}))}catch(_){}};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=n=>n>=1e6?(n/1e6).toFixed(1).replace(".0","")+" mln so'm":Math.round(n/1e3)+" ming so'm";
+function price(h){if(!h.price_amount)return"Narx kelishiladi";const a=h.price_amount;
+ const s=h.currency==="USD"?"$"+a.toLocaleString("ru"):fmt(a);
+ return s+(h.price_type==="kishi"?" / kishiga":h.price_type==="xona"?" / xonasi":"")}
+const uzs=h=>h.price_uzs??(h.price_amount?(h.currency==="USD"?h.price_amount*12500:h.price_amount):null);
+const pp=h=>{const u=uzs(h);if(!u)return null;return(h.price_type||"butun")==="butun"?(h.cap>1?u/h.cap:null):u};   // bir kishi uchun narx
+const key=h=>$("stu").checked?pp(h):uzs(h);
+function ok(h){if(h.status!=="on")return false;
+ const c=$("city").value,t=$("type").value,r=$("rooms").value,m=+$("max").value,st=$("stu").checked,un=st?$("uni").value:"";
+ if(c&&h.city!==c)return false;if(t&&h.type!==t)return false;
+ if(r&&!(r==="4"?h.rooms>=4:h.rooms==r))return false;
+ if(m){const p=key(h);if(!(p&&p<=m*(st?1e3:1e6)))return false}
+ if(st&&h.student==="yoq")return false;
+ if(un&&!(h.near||[]).includes(un))return false;
+ if($("fur").checked&&h.furnished!=="jihozli")return false;return true}
+function card(h){const ph=(h.phones||[])[0],d=h.createdAt?Math.floor((Date.now()-h.createdAt)/864e5):null,st=$("stu").checked,p=pp(h);
+ let main=price(h),sub="";
+ if((h.price_type||"butun")==="butun"&&p){if(st){main="≈ "+fmt(p)+" / kishiga";sub="Jami: "+price(h)+" · "+h.cap+" kishiga (e'londan taxminiy)"}else sub="≈ "+fmt(p)+" / kishiga · "+h.cap+" kishi (taxminiy)"}
+ const tags=[h.floor&&h.floor+"-qavat",h.furnished==="jihozli"&&"Jihozli",h.student==="ha"&&"Talabaga mumkin",
+  (h.for_whom||[]).includes("qiz")&&"Qizlarga",h.broker==="makler"&&"Makler",h.broker==="maklersiz"&&"Maklersiz",h.utilities_extra&&"Komunalka alohida",
+  ...(st?(h.near||[]):[]).map(n=>n+"ga yaqin")].filter(Boolean);
+ const done=localStorage.getItem("b_"+h.id),mine=lsJ("uy_mine",[]).includes(h.id);
+ return`<div class="c"><div class="p">${esc(main)}</div>${sub?`<div class="m">${esc(sub)}</div>`:""}<div class="t">${esc(h.title||"Uy")}</div>
+ <div class="m">${esc([...(h.places||[])].join(", ")||h.address||"")}${d!=null?" · "+(d?d+" kun oldin":"bugun"):""}</div>
+ <div class="g">${tags.map(x=>`<span>${esc(x)}</span>`).join("")}</div>
+ <div class="m">${esc((h.text||"").slice(0,180))}</div>
+ <div class="b">${ph?`<a class="call" href="tel:${esc(ph)}">📞 Qo'ng'iroq</a>`:""}
+ ${h.link?`<a href="${esc(h.link)}" target="_blank">Asl e'lon</a>`:""}
+ ${mine?`<button data-a="off" data-id="${esc(h.id)}">O'chirish</button>`:`<button data-a="busy" data-id="${esc(h.id)}" ${done?"disabled":""}>${done?"Belgilandi ✓":"Band"+(h.busy?" ("+h.busy+")":"")}</button>`}
+ <a href="mailto:${EMAIL}?subject=Shikoyat&body=E'lon ID: ${esc(h.id)}">Shikoyat</a></div></div>`}
+function render(){const l=all.filter(ok),o=$("sort").value;
+ l.sort(o==="n"?(a,b)=>b.createdAt-a.createdAt:o==="d"?(a,b)=>(key(b)??-1)-(key(a)??-1):(a,b)=>(key(a)??1e18)-(key(b)??1e18));$("list").innerHTML=l.slice(0,shown).map(card).join("");
+ $("st").textContent=l.length?l.length+" ta e'lon":"E'lon topilmadi";$("more").hidden=l.length<=shown}
+async function sync(){if(loading)return;
+ if(!/^AIza/.test(CFG.apiKey||"")){$("st").textContent="config.js ichida apiKey yozilmagan (AIza... bilan boshlanadi)";return}
+ loading=true;if(!all.length)$("st").textContent="Yuklanmoqda…";else render();
+ try{const q={from:[{collectionId:"houses"}],orderBy:[{field:{fieldPath:"createdAt"},direction:"DESCENDING"}],limit:300};
+  if(ts)q.where={fieldFilter:{field:{fieldPath:"createdAt"},op:"GREATER_THAN_OR_EQUAL",value:{timestampValue:new Date(ts).toISOString()}}};
+  const j=await api(API+":runQuery?key="+CFG.apiKey,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({structuredQuery:q})});
+  const m=new Map(all.map(h=>[h.id,h]));j.forEach(r=>{if(r.document){const h=slim(r.document);m.set(h.id,h)}});
+  all=[...m.values()].filter(h=>Date.now()-h.createdAt<WEEK).sort((a,b)=>b.createdAt-a.createdAt);
+  ts=all.length?all[0].createdAt:ts;if(!fullAt)fullAt=Date.now();save()}
+ catch(e){loading=false;if(!all.length){$("st").textContent="Xato: "+e.message;return}}
+ loading=false;render()}
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-a=busy]");if(!b)return;
+ b.disabled=true;try{await api(API+":commit?key="+CFG.apiKey,{method:"POST",headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({writes:[{transform:{document:"projects/"+CFG.projectId+"/databases/(default)/documents/houses/"+b.dataset.id,fieldTransforms:[{fieldPath:"busy",increment:{integerValue:"1"}}]}}]})});
+  localStorage.setItem("b_"+b.dataset.id,"1");b.textContent="Belgilandi ✓";const h=all.find(x=>x.id===b.dataset.id);if(h){h.busy=(h.busy||0)+1;save()}}catch(_){b.disabled=false}});
+$("uni").innerHTML='<option value="">Universitet (hammasi)</option>'+Object.keys(UNI).map(k=>`<option value="${k}">${k}</option>`).join("");
+const mode=()=>{$("uni").hidden=!$("stu").checked;$("max").placeholder=$("stu").checked?"≤ ming so'm / kishi":"≤ mln so'm";try{localStorage.setItem("uy_stu",$("stu").checked?"1":"")}catch(_){}};
+try{$("stu").checked=!!localStorage.getItem("uy_stu")}catch(_){}mode();
+["city","type","rooms","uni","max","stu","fur","sort"].forEach(i=>$(i).addEventListener("input",()=>{if(i==="stu")mode();shown=PAGE;render()}));
+$("more").onclick=()=>{shown+=PAGE;render()};
+// ===== E'lon berish (anonim kirish + Firestore REST) =====
+// ==UYLOGIC==
+const enc=v=>v==null?{nullValue:null}:typeof v==="string"?{stringValue:v}:typeof v==="boolean"?{booleanValue:v}:typeof v==="number"?(Number.isInteger(v)?{integerValue:String(v)}:{doubleValue:v}):Array.isArray(v)?{arrayValue:{values:v.map(enc)}}:{nullValue:null};
+function buildDoc(v){const price=v.price===""||v.price==null?null:Number(v.price),rooms=v.type==="kvartira"&&v.rooms?+v.rooms:null,kind={kvartira:"Kvartira",hovli:"Hovli",joy:"Joy"}[v.type];
+ return{type:v.type,rooms,price_amount:price,currency:price===null?null:v.cur,price_uzs:price===null?null:(v.cur==="USD"?price*12500:price),price_certain:price!==null,
+  price_type:price===null?null:v.ptype,utilities_extra:false,city:v.city,places:[],address:v.addr,furnished:v.furn,student:v.who==="oila"?"yoq":v.stud,
+  for_whom:v.who?[v.who]:[],broker:v.broker,phones:["+998"+v.ph],group_size:1,text:v.text,title:kind+(rooms?", "+rooms+" xonali":"")+" · "+v.city,
+  source:"Ilova",status:"on",busy:0,reports:0,posted:false}}
+// ==UYEND==
+const DOC="projects/"+CFG.projectId+"/databases/(default)/documents";
+const jpost=(url,body,tok)=>api(url,{method:"POST",headers:{"Content-Type":"application/json",...(tok?{Authorization:"Bearer "+tok}:{})},body:JSON.stringify(body)});
+async function auth(){let a=lsJ("uy_auth",null);if(a&&a.exp>Date.now()+6e4)return a;
+ if(a&&a.refresh){try{const r=await api("https://securetoken.googleapis.com/v1/token?key="+CFG.apiKey,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"grant_type=refresh_token&refresh_token="+encodeURIComponent(a.refresh)});
+  a={uid:r.user_id,id:r.id_token,refresh:r.refresh_token,exp:Date.now()+(+r.expires_in)*1e3}}catch(_){a=null}}
+ if(!a||!a.id){const r=await jpost("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="+CFG.apiKey,{returnSecureToken:true});
+  a={uid:r.localId,id:r.idToken,refresh:r.refreshToken,exp:Date.now()+(+r.expiresIn)*1e3}}
+ try{localStorage.setItem("uy_auth",JSON.stringify(a))}catch(_){}return a}
+const errTxt=e=>{const m=String(e&&e.message||e);
+ if(/OPERATION_NOT_ALLOWED|ADMIN_ONLY/.test(m))return"Firebase → Authentication → Sign-in method → Anonymous yoqilmagan.";
+ if(/PERMISSION_DENIED/.test(m))return"E'lon qabul qilinmadi (Firebase Rules). Maydonlarni tekshiring.";return m};
+const fRooms=()=>{$("fr").style.display=$("ft").value==="kvartira"?"":"none"};
+$("add").onclick=()=>{$("fe").textContent="";fRooms();$("m").classList.add("on")};
+$("ft").onchange=fRooms;$("fcn").onclick=()=>$("m").classList.remove("on");
+$("m").addEventListener("click",e=>{if(e.target.id==="m")$("m").classList.remove("on")});
+$("fok").onclick=async()=>{const er=m=>{$("fe").textContent=m},ph=$("fph").value.replace(/\D/g,"").replace(/^998/,""),addr=$("fa").value.trim(),price=$("fp").value;
+ if(ph.length!==9)return er("Telefon raqam 9 ta raqamdan iborat bo'lishi kerak (masalan 90 123 45 67)");
+ if(addr.length<3)return er("Manzil yoki mo'ljalni yozing");
+ if(price!==""&&!(Number(price)>0))return er("Narx noto'g'ri");
+ if(lsJ("uy_posts",[]).filter(t=>Date.now()-t<864e5).length>=3)return er("Bir kunda 3 tadan ko'p e'lon berib bo'lmaydi");
+ const doc=buildDoc({type:$("ft").value,city:$("fc").value,rooms:$("fro").value,price,cur:$("fcu").value,ptype:$("fpt").value,addr,furn:$("ffu").value,who:$("fw").value,stud:$("fs").value,broker:$("fb").value,ph,text:$("fx").value.trim()});
+ const ok=$("fok");ok.disabled=true;er("");
+ try{const a=await auth();doc.owner=a.uid;const id=(crypto.randomUUID?crypto.randomUUID().replace(/-/g,""):Math.random().toString(36).slice(2)+Date.now().toString(36)).slice(0,20);
+  const fields=Object.fromEntries(Object.entries(doc).map(([k,v])=>[k,enc(v)]));
+  await jpost(API+":commit?key="+CFG.apiKey,{writes:[{update:{name:DOC+"/houses/"+id,fields},updateTransforms:[{fieldPath:"createdAt",setToServerValue:"REQUEST_TIME"}],currentDocument:{exists:false}}]},a.id);
+  const h=slim({name:"x/"+id,fields:{...fields,createdAt:{timestampValue:new Date().toISOString()}}});
+  all.unshift(h);ts=Math.max(ts,h.createdAt);save();lsAdd("uy_mine",id);lsAdd("uy_posts",Date.now());$("m").classList.remove("on");shown=PAGE;render();alert("E'lon joylandi!")}
+ catch(e){er(errTxt(e))}ok.disabled=false};
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-a=off]");if(!b||!confirm("E'lonni o'chirasizmi?"))return;
+ b.disabled=true;try{const a=await auth(),id=b.dataset.id;
+  await jpost(API+":commit?key="+CFG.apiKey,{writes:[{update:{name:DOC+"/houses/"+id,fields:{status:{stringValue:"off"},offReason:{stringValue:"owner"}}},updateMask:{fieldPaths:["status","offReason"]},currentDocument:{exists:true}}]},a.id);
+  all=all.filter(h=>h.id!==id);save();render()}catch(e){b.disabled=false;alert("O'chirib bo'lmadi: "+errTxt(e))}});
+if(all.length)render();sync();
+</script></body></html>
