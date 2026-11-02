@@ -17,13 +17,13 @@ main{padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px))}
 .b a,.b button{flex:1;min-width:30%;text-align:center;padding:8px 4px;border-radius:8px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);font-size:13px;text-decoration:none}
 .b .call{background:var(--pr);color:#fff;border-color:var(--pr)}
 #st{text-align:center;color:var(--mu);padding:16px}#more{display:block;margin:6px auto;padding:10px 22px;border-radius:10px;border:0;background:var(--pr);color:#fff;font-size:14px}
-[hidden]{display:none!important}</style></head><body>
+[hidden]{display:none!important}.stu{font-weight:700;background:#ffffff33;padding:4px 8px;border-radius:8px}</style></head><body>
 <header><h1>🏠 Uy ijara</h1><div class="f">
 <select id="city"><option value="">Shahar</option><option>Namangan</option><option>Toshkent</option></select>
 <select id="type"><option value="">Turi</option><option value="kvartira">Kvartira</option><option value="hovli">Hovli</option><option value="joy">Joy</option></select>
-<select id="rooms"><option value="">Xona</option><option>1</option><option>2</option><option>3</option><option value="4">4+</option></select>
+<select id="uni" hidden><option value="">Universitet (hammasi)</option></select><select id="rooms"><option value="">Xona</option><option>1</option><option>2</option><option>3</option><option value="4">4+</option></select>
 <input id="max" type="number" placeholder="≤ mln so'm">
-<label><input type="checkbox" id="stu">Talabaga</label><label><input type="checkbox" id="fur">Jihozli</label></div></header>
+<label class="stu"><input type="checkbox" id="stu">🎓 Talabalar uchun</label><label><input type="checkbox" id="fur">Jihozli</label><select id="sort"><option value="p">Arzonidan</option><option value="d">Qimmatidan</option><option value="n">Yangilari</option></select></div></header>
 <main><div id="list"></div><div id="st">Yuklanmoqda…</div><button id="more" hidden>Yana ko'rsatish</button></main>
 <script src="config.js"></script>
 <script type="module">
@@ -43,28 +43,46 @@ async function api(url,opt){const c=new AbortController(),t=setTimeout(()=>c.abo
  try{const r=await fetch(url,{...opt,signal:c.signal}),j=await r.json();
   if(!r.ok)throw new Error((j.error?.status||r.status)+": "+(j.error?.message||"").slice(0,120));return j}
  catch(e){throw new Error(e.name==="AbortError"?"vaqt tugadi: server javob bermadi":e.message)}finally{clearTimeout(t)}}
+const UNI=window.UNI||{
+"NamDTU":"namdtu|nam\\s?dtu|nam\\s?m?qi\\b|pali?tex|politex|politeh|do.?stlik|дўстлик|дустлик|yangi\\s?bozor|янги\\s?бозор",
+"NamDU":"namdu|nam\\s?du\\b|chorsu|чорсу|nam\\s?pi\\b|31\\s*-?\\s*(?:son\\s*)?(?:maktab|мактаб)|yuksalish|юксалиш|orzu\\s?(?:sity|city|siti)|орзу\\s?сити|(?<!dash)kola\\s*ko.?cha",
+"UBS":"\\bubs\\b|убс|\\bntd\\b|нтд|[gh]?ospital|госпитал|shamshiboy|шамшибой|promzona|промзона|oxunboboy?e?v|охунбобоев|yangi\\s?bozor|янги\\s?бозор",
+"Turon":"turon|турон|pi?tilitka|pyatiletka|пятилетка|питилитка|naberejn\\w*|набережн\\w*",
+"KIUT":"kiut|киут|dash\\s?kola|дашкола|yuksalish|юксалиш|orzu\\s?(?:sity|city|siti)|орзу\\s?сити"};
+const UNIRE=Object.entries(UNI).map(([k,v])=>[k,new RegExp(v,"i")]);
 const KEEP=["status","city","type","rooms","floor","price_amount","currency","price_uzs","price_type","places","address","furnished","student","for_whom","broker","phones","utilities_extra","text","link","busy","title"];
 const slim=d=>{const f=Object.fromEntries(Object.entries(d.fields||{}).map(([a,b])=>[a,val(b)])),h={id:d.name.split("/").pop(),createdAt:+(f.createdAt||0)};
- KEEP.forEach(k=>{if(f[k]!==undefined)h[k]=f[k]});if(h.text)h.text=h.text.slice(0,200);return h};
-const WEEK=8*864e5,KEY="uy_cache_v1";let all=[],shown=PAGE,ts=0,fullAt=0,loading=false;
+ KEEP.forEach(k=>{if(f[k]!==undefined)h[k]=f[k]});
+ const t=[f.text,f.address,(f.places||[]).join(" ")].join(" ");h.near=UNIRE.filter(([k,r])=>r.test(t)).map(([k])=>k);
+ const c=/(\d{1,2})\s*(?:ta\s*)?(?:kishi|nafar|qiz|bola|yigit|o'g'il|talaba|student)/i.exec(f.text||"");if(c&&+c[1]>1&&+c[1]<=8)h.cap=+c[1];
+ if(h.text)h.text=h.text.slice(0,200);return h};
+const WEEK=8*864e5,KEY="uy_cache_v2";let all=[],shown=PAGE,ts=0,fullAt=0,loading=false;
 try{const c=JSON.parse(localStorage.getItem(KEY)||"null");if(c&&Date.now()-c.f<864e5){all=c.items;ts=c.t;fullAt=c.f}}catch(_){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({f:fullAt,t:ts,items:all}))}catch(_){}};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=n=>n>=1e6?(n/1e6).toFixed(1).replace(".0","")+" mln so'm":Math.round(n/1e3)+" ming so'm";
 function price(h){if(!h.price_amount)return"Narx kelishiladi";const a=h.price_amount;
- let s=h.currency==="USD"?"$"+a.toLocaleString("ru"):a>=1e6?(a/1e6).toFixed(1).replace(".0","")+" mln so'm":a.toLocaleString("ru")+" so'm";
+ const s=h.currency==="USD"?"$"+a.toLocaleString("ru"):fmt(a);
  return s+(h.price_type==="kishi"?" / kishiga":h.price_type==="xona"?" / xonasi":"")}
+const uzs=h=>h.price_uzs??(h.price_amount?(h.currency==="USD"?h.price_amount*12500:h.price_amount):null);
+const pp=h=>{const u=uzs(h);if(!u)return null;return(h.price_type||"butun")==="butun"?(h.cap>1?u/h.cap:null):u};   // bir kishi uchun narx
+const key=h=>$("stu").checked?pp(h):uzs(h);
 function ok(h){if(h.status!=="on")return false;
- const c=$("city").value,t=$("type").value,r=$("rooms").value,m=+$("max").value;
+ const c=$("city").value,t=$("type").value,r=$("rooms").value,m=+$("max").value,st=$("stu").checked,un=st?$("uni").value:"";
  if(c&&h.city!==c)return false;if(t&&h.type!==t)return false;
  if(r&&!(r==="4"?h.rooms>=4:h.rooms==r))return false;
- if(m){const u=h.price_uzs??(h.price_amount?(h.currency==="USD"?h.price_amount*12500:h.price_amount):null);if(!(u&&u<=m*1e6))return false}
- if($("stu").checked&&h.student==="yoq")return false;
+ if(m){const p=key(h);if(!(p&&p<=m*(st?1e3:1e6)))return false}
+ if(st&&h.student==="yoq")return false;
+ if(un&&!(h.near||[]).includes(un))return false;
  if($("fur").checked&&h.furnished!=="jihozli")return false;return true}
-function card(h){const ph=(h.phones||[])[0],d=h.createdAt?Math.floor((Date.now()-h.createdAt)/864e5):null;
+function card(h){const ph=(h.phones||[])[0],d=h.createdAt?Math.floor((Date.now()-h.createdAt)/864e5):null,st=$("stu").checked,p=pp(h);
+ let main=price(h),sub="";
+ if((h.price_type||"butun")==="butun"&&p){if(st){main="≈ "+fmt(p)+" / kishiga";sub="Jami: "+price(h)+" · "+h.cap+" kishiga (e'londan taxminiy)"}else sub="≈ "+fmt(p)+" / kishiga · "+h.cap+" kishi (taxminiy)"}
  const tags=[h.floor&&h.floor+"-qavat",h.furnished==="jihozli"&&"Jihozli",h.student==="ha"&&"Talabaga mumkin",
-  (h.for_whom||[]).includes("qiz")&&"Qizlarga",h.broker==="makler"&&"Makler",h.broker==="maklersiz"&&"Maklersiz",h.utilities_extra&&"Komunalka alohida"].filter(Boolean);
+  (h.for_whom||[]).includes("qiz")&&"Qizlarga",h.broker==="makler"&&"Makler",h.broker==="maklersiz"&&"Maklersiz",h.utilities_extra&&"Komunalka alohida",
+  ...(st?(h.near||[]):[]).map(n=>n+"ga yaqin")].filter(Boolean);
  const done=localStorage.getItem("b_"+h.id);
- return`<div class="c"><div class="p">${esc(price(h))}</div><div class="t">${esc(h.title||"Uy")}</div>
+ return`<div class="c"><div class="p">${esc(main)}</div>${sub?`<div class="m">${esc(sub)}</div>`:""}<div class="t">${esc(h.title||"Uy")}</div>
  <div class="m">${esc([...(h.places||[])].join(", ")||h.address||"")}${d!=null?" · "+(d?d+" kun oldin":"bugun"):""}</div>
  <div class="g">${tags.map(x=>`<span>${esc(x)}</span>`).join("")}</div>
  <div class="m">${esc((h.text||"").slice(0,180))}</div>
@@ -72,7 +90,8 @@ function card(h){const ph=(h.phones||[])[0],d=h.createdAt?Math.floor((Date.now()
  ${h.link?`<a href="${esc(h.link)}" target="_blank">Asl e'lon</a>`:""}
  <button data-a="busy" data-id="${esc(h.id)}" ${done?"disabled":""}>${done?"Belgilandi ✓":"Band"+(h.busy?" ("+h.busy+")":"")}</button>
  <a href="mailto:${EMAIL}?subject=Shikoyat&body=E'lon ID: ${esc(h.id)}">Shikoyat</a></div></div>`}
-function render(){const l=all.filter(ok);$("list").innerHTML=l.slice(0,shown).map(card).join("");
+function render(){const l=all.filter(ok),o=$("sort").value;
+ l.sort(o==="n"?(a,b)=>b.createdAt-a.createdAt:o==="d"?(a,b)=>(key(b)??-1)-(key(a)??-1):(a,b)=>(key(a)??1e18)-(key(b)??1e18));$("list").innerHTML=l.slice(0,shown).map(card).join("");
  $("st").textContent=l.length?l.length+" ta e'lon":"E'lon topilmadi";$("more").hidden=l.length<=shown}
 async function sync(){if(loading)return;
  if(!/^AIza/.test(CFG.apiKey||"")){$("st").textContent="config.js ichida apiKey yozilmagan (AIza... bilan boshlanadi)";return}
@@ -89,7 +108,10 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-a=bu
  b.disabled=true;try{await api(API+":commit?key="+CFG.apiKey,{method:"POST",headers:{"Content-Type":"application/json"},
   body:JSON.stringify({writes:[{transform:{document:"projects/"+CFG.projectId+"/databases/(default)/documents/houses/"+b.dataset.id,fieldTransforms:[{fieldPath:"busy",increment:{integerValue:"1"}}]}}]})});
   localStorage.setItem("b_"+b.dataset.id,"1");b.textContent="Belgilandi ✓";const h=all.find(x=>x.id===b.dataset.id);if(h){h.busy=(h.busy||0)+1;save()}}catch(_){b.disabled=false}});
-["city","type","rooms","max","stu","fur"].forEach(i=>$(i).addEventListener("input",()=>{shown=PAGE;render()}));
+$("uni").innerHTML='<option value="">Universitet (hammasi)</option>'+Object.keys(UNI).map(k=>`<option value="${k}">${k}</option>`).join("");
+const mode=()=>{$("uni").hidden=!$("stu").checked;$("max").placeholder=$("stu").checked?"≤ ming so'm / kishi":"≤ mln so'm";try{localStorage.setItem("uy_stu",$("stu").checked?"1":"")}catch(_){}};
+try{$("stu").checked=!!localStorage.getItem("uy_stu")}catch(_){}mode();
+["city","type","rooms","uni","max","stu","fur","sort"].forEach(i=>$(i).addEventListener("input",()=>{if(i==="stu")mode();shown=PAGE;render()}));
 $("more").onclick=()=>{shown+=PAGE;render()};
 if(all.length)render();sync();
 </script></body></html>
