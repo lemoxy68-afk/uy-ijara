@@ -4,4 +4,4 @@ window.CFG = {
   apiKey: "AIzaSyCJba_4Ay9B5Se77RJmHHSOYmgpxsJZFus",
   projectId: "uyijaraga"
 };
-window.EMAIL = "BU_YERGA_EMAIL";   // shikoyatlar shu manzilga boradi
+window.EMAIL = "goldbek87@mgail.com";   // shikoyatlar shu manzilga boradi
